@@ -1,8 +1,8 @@
+// src/components/Facturas.js
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 const Facturas = () => {
-  // Recuperar los datos del cliente enviados por state
   const { state } = useLocation();
   const cliente = state?.cliente;
   const navigate = useNavigate();
@@ -79,8 +79,9 @@ const Facturas = () => {
     alert(`Viendo detalle de la factura con ID: ${facturaId}`);
   };
 
-  const handlePayPhone = (facturaId) => {
-    alert(`Pagando con PAYPHONE la factura con ID: ${facturaId}`);
+  const handlePayPhone = (facturaId, total) => {
+    // Redirige a la ruta /payphone pasando facturaId y total en el state
+    navigate('/payphone', { state: { facturaId, total } });
   };
 
   const handleDeUna = (facturaId) => {
@@ -111,7 +112,9 @@ const Facturas = () => {
         <h1>Facturas del Cliente</h1>
         <div className="alert alert-danger mt-3">
           <p>{error}</p>
-          <button className="btn btn-secondary" onClick={() => navigate(-1)}>Regresar</button>
+          <button className="btn btn-secondary" onClick={() => navigate(-1)}>
+            Regresar
+          </button>
         </div>
       </div>
     );
@@ -150,13 +153,22 @@ const Facturas = () => {
                 <td>{factura.total}</td>
                 <td>{factura.estado}</td>
                 <td>
-                  <button className="btn btn-success me-2" onClick={() => handlePayPhone(factura.id)}>
+                  <button
+                    className="btn btn-success me-2"
+                    onClick={() => handlePayPhone(factura.id, factura.total)}
+                  >
                     PAYPHONE
                   </button>
-                  <button className="btn btn-primary me-2" onClick={() => handleDeUna(factura.id)}>
+                  <button
+                    className="btn btn-primary me-2"
+                    onClick={() => handleDeUna(factura.id)}
+                  >
                     DE UNA
                   </button>
-                  <button className="btn btn-warning" onClick={() => handleDeposito(factura.id)}>
+                  <button
+                    className="btn btn-warning"
+                    onClick={() => handleDeposito(factura.id)}
+                  >
                     DEPÓSITO
                   </button>
                 </td>
@@ -185,7 +197,10 @@ const Facturas = () => {
                 <td>{factura.total}</td>
                 <td>{factura.estado}</td>
                 <td>
-                  <button className="btn btn-info" onClick={() => handleVerFactura(factura.id)}>
+                  <button
+                    className="btn btn-info"
+                    onClick={() => handleVerFactura(factura.id)}
+                  >
                     Ver Factura
                   </button>
                 </td>

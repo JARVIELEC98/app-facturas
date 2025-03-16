@@ -1,3 +1,4 @@
+// src/components/ConsultaCliente.js
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
@@ -50,7 +51,7 @@ const ConsultaCliente = () => {
   };
 
   const handleVerFacturas = () => {
-    // Navegamos a la ruta "/facturas" pasando los datos del cliente en el state
+    // Redirige a la ruta "/facturas" pasando el objeto cliente por state
     navigate('/facturas', { state: { cliente } });
   };
 
@@ -80,7 +81,9 @@ const ConsultaCliente = () => {
         <h1>Consulta de Cliente</h1>
         <div className="alert alert-danger mt-3">
           <p>{error}</p>
-          <button className="btn btn-secondary" onClick={handleNuevo}>Regresar</button>
+          <button className="btn btn-secondary" onClick={handleNuevo}>
+            Regresar
+          </button>
         </div>
       </div>
     );
@@ -102,7 +105,9 @@ const ConsultaCliente = () => {
               required
             />
           </div>
-          <button type="submit" className="btn btn-primary">Consultar</button>
+          <button type="submit" className="btn btn-primary">
+            Consultar
+          </button>
         </form>
       ) : (
         <div className="mt-4">
@@ -124,8 +129,12 @@ const ConsultaCliente = () => {
             <strong>Estado del Servicio:</strong> {cliente.estado === 'ACTIVO' ? 'Activo' : 'Suspendido'}
           </p>
           <div className="mt-3">
-            <button onClick={handleVerFacturas} className="btn btn-info me-2">Ver Facturas</button>
-            <button onClick={handleNuevo} className="btn btn-secondary">Consultar de nuevo</button>
+            <button onClick={handleVerFacturas} className="btn btn-info me-2">
+              Ver Facturas
+            </button>
+            <button onClick={handleNuevo} className="btn btn-secondary">
+              Consultar de nuevo
+            </button>
           </div>
         </div>
       )}
