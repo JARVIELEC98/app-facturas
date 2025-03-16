@@ -80,8 +80,8 @@ const Facturas = () => {
   };
 
   const handlePayPhone = (facturaId, total) => {
-    // Redirige a la ruta /payphone pasando facturaId y total en el state
-    navigate('/payphone', { state: { facturaId, total } });
+    // Redirige a /payphone pasando facturaId, total y cliente en el state
+    navigate('/payphone', { state: { facturaId, total, cliente } });
   };
 
   const handleDeUna = (facturaId) => {
@@ -122,9 +122,7 @@ const Facturas = () => {
 
   return (
     <div className="container mt-5">
-      <button onClick={() => navigate(-1)} className="btn btn-secondary">
-        Regresar
-      </button>
+      <button onClick={() => navigate(-1)} className="btn btn-secondary">Regresar</button>
       <h1 className="mt-3">Facturas del Cliente</h1>
       {cliente && (
         <div className="mb-4">
@@ -166,10 +164,17 @@ const Facturas = () => {
                     DE UNA
                   </button>
                   <button
-                    className="btn btn-warning"
+                    className="btn btn-warning me-2"
                     onClick={() => handleDeposito(factura.id)}
                   >
                     DEPÓSITO
+                  </button>
+                  {/* Botón de Confirmacion a los lados de DEPÓSITO */}
+                  <button
+                    className="btn btn-info"
+                    onClick={() => alert("Aquí iría la confirmación de pago (a desarrollar)")}
+                  >
+                    Confirmacion
                   </button>
                 </td>
               </tr>
@@ -197,10 +202,7 @@ const Facturas = () => {
                 <td>{factura.total}</td>
                 <td>{factura.estado}</td>
                 <td>
-                  <button
-                    className="btn btn-info"
-                    onClick={() => handleVerFactura(factura.id)}
-                  >
+                  <button className="btn btn-info" onClick={() => handleVerFactura(factura.id)}>
                     Ver Factura
                   </button>
                 </td>

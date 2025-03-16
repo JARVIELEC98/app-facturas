@@ -51,7 +51,6 @@ const ConsultaCliente = () => {
   };
 
   const handleVerFacturas = () => {
-    // Redirige a la ruta "/facturas" pasando el objeto cliente por state
     navigate('/facturas', { state: { cliente } });
   };
 
@@ -105,9 +104,7 @@ const ConsultaCliente = () => {
               required
             />
           </div>
-          <button type="submit" className="btn btn-primary">
-            Consultar
-          </button>
+          <button type="submit" className="btn btn-primary">Consultar</button>
         </form>
       ) : (
         <div className="mt-4">
