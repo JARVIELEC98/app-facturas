@@ -13,7 +13,7 @@ const Payphone = () => {
   const API_URL = process.env.REACT_APP_PAYPHONE_API_URL;      
   const TOKEN = process.env.REACT_APP_PAYPHONE_TOKEN;
   const STOREID = process.env.REACT_APP_PAYPHONE_STOREID;
-  const RESPONSEURL = process.env.REACT_APP_PAYPHONE_RESPONSEURL;
+  const RESPONSEURL = window.location.origin + '/confirpayphone';
 
   useEffect(() => {
     if (!facturaId || !total) {

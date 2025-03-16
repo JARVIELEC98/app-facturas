@@ -10,7 +10,6 @@ const ConsultaCliente = () => {
 
   const API_URL_CLIENTE = process.env.REACT_APP_API_URL_CLIENTE;
   const API_TOKEN = process.env.REACT_APP_API_TOKEN;
-
   const navigate = useNavigate();
 
   const handleConsulta = async (e) => {
@@ -24,20 +23,16 @@ const ConsultaCliente = () => {
         token: API_TOKEN,
         cedula: cedula
       });
-
       const response = await fetch(API_URL_CLIENTE, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${API_TOKEN}`
         },
-        body: body
+        body
       });
 
-      if (!response.ok) {
-        throw new Error('Error en la consulta');
-      }
-
+      if (!response.ok) throw new Error('Error en la consulta');
       const data = await response.json();
       if (data.estado !== 'exito' || !data.datos || data.datos.length === 0) {
         throw new Error('Cliente no encontrado');
@@ -64,12 +59,10 @@ const ConsultaCliente = () => {
     return (
       <div className="container mt-5 text-center">
         <h1>Consulta de Cliente</h1>
-        <div className="mt-4">
-          <div className="spinner-border text-primary" role="status">
-            <span className="visually-hidden">Loading...</span>
-          </div>
-          <p className="mt-2">Espere por favor...</p>
+        <div className="mt-4 spinner-border text-primary" role="status">
+          <span className="visually-hidden">Loading...</span>
         </div>
+        <p className="mt-2">Espere por favor...</p>
       </div>
     );
   }
