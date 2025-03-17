@@ -1,19 +1,24 @@
+// src/components/Payphone.js
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 const Payphone = () => {
   const { state } = useLocation();
-  const { facturaId, total } = state || {};
+  const { facturaId, total, cliente } = state || {};
   const navigate = useNavigate();
 
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [payLink, setPayLink] = useState('');
+  const [showConfirmation, setShowConfirmation] = useState(false);
 
-  // Variables de entorno
-  const API_URL = process.env.REACT_APP_PAYPHONE_API_URL;      
+  const API_URL = process.env.REACT_APP_PAYPHONE_API_URL;
   const TOKEN = process.env.REACT_APP_PAYPHONE_TOKEN;
   const STOREID = process.env.REACT_APP_PAYPHONE_STOREID;
-  const RESPONSEURL = window.location.origin + '/confirpayphone';
+  
+  // Redirige a PaymentResponse luego del pago, para confirmar la transacción
+  const RESPONSEURL = 'http://localhost:3000/paymentResponse';
+
 
   useEffect(() => {
     if (!facturaId || !total) {
@@ -21,10 +26,8 @@ const Payphone = () => {
       return;
     }
     setLoading(true);
-
     const clientTransactionId = Date.now();
-    
-    // amount y amountWithoutTax con factor 106
+
     const bodyJSON = {
       amount: total * 106,
       amountWithoutTax: total * 106,
@@ -47,11 +50,15 @@ const Payphone = () => {
     })
       .then(res => res.json())
       .then(data => {
-        // Si el API proporciona 'payWithCard', redirigimos inmediatamente
         if (data.payWithCard) {
-          window.location.href = data.payWithCard;
+          setPayLink(data.payWithCard);
+          setShowConfirmation(true);
+          setLoading(false);
+          // Muestra la pantalla de confirmación por 3 segundos y luego redirige al enlace de pago
+          setTimeout(() => {
+            window.location.href = data.payWithCard;
+          }, 3000);
         } else {
-          // Si no existe payWithCard, mostramos error
           setError("No se recibió un enlace de pago (payWithCard).");
           setLoading(false);
         }
@@ -62,23 +69,18 @@ const Payphone = () => {
       });
   }, [facturaId, total, API_URL, TOKEN, STOREID, RESPONSEURL]);
 
-  // Mostrar spinner mientras esperamos la respuesta
-  if (loading && !error) {
+  if (loading && !error && !showConfirmation) {
     return (
       <div className="container mt-5 text-center">
         <h1>Pagar con PayPhone</h1>
-        <div className="mt-4">
-          {/* Ícono de carga (spinner) */}
-          <div className="spinner-border text-primary" role="status">
-            <span className="visually-hidden">Loading...</span>
-          </div>
-          <p className="mt-2">Espere por favor...</p>
+        <div className="mt-4 spinner-border text-primary" role="status">
+          <span className="visually-hidden">Loading...</span>
         </div>
+        <p className="mt-2">Espere por favor...</p>
       </div>
     );
   }
 
-  // Si hay error
   if (error) {
     return (
       <div className="container mt-5">
@@ -91,8 +93,37 @@ const Payphone = () => {
     );
   }
 
-  // Si por alguna razón no está loading ni hay error,
-  // significa que no hubo payWithCard y no se redirigió.
+  if (showConfirmation) {
+    return (
+      <div className="container mt-5 text-center">
+        <h1>Confirmación de Pago</h1>
+        <div className="card mx-auto" style={{ maxWidth: '500px' }}>
+          <div className="card-body">
+            <h5 className="card-title">Datos del Cliente</h5>
+            {cliente ? (
+              <div>
+                <p><strong>ID Cliente:</strong> {cliente.id}</p>
+                <p><strong>Nombre:</strong> {cliente.nombre}</p>
+                <p>
+                  <strong>Estado:</strong>
+                  <span className={cliente.estado === "ACTIVO" ? "text-success" : "text-danger"}>
+                    {cliente.estado === "ACTIVO" ? " Activo" : " Suspendido"}
+                  </span>
+                </p>
+              </div>
+            ) : (
+              <p>No se proporcionaron datos del cliente.</p>
+            )}
+            <h5 className="card-title mt-4">Detalle de la Factura</h5>
+            <p><strong>ID Factura:</strong> {facturaId}</p>
+            <p><strong>Total a Pagar:</strong> ${total}</p>
+          </div>
+        </div>
+        <p className="mt-3">Será redirigido al portal de pago en 3 segundos...</p>
+      </div>
+    );
+  }
+
   return (
     <div className="container mt-5">
       <h1>Sin Enlace de Pago</h1>

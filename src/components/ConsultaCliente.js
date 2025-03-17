@@ -1,28 +1,86 @@
 // src/components/ConsultaCliente.js
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 const ConsultaCliente = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
+
   const [cedula, setCedula] = useState('');
   const [cliente, setCliente] = useState(null);
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [errorCliente, setErrorCliente] = useState('');
+  const [loadingCliente, setLoadingCliente] = useState(false);
+
+  // Estados para pago
+  const [loadingPago, setLoadingPago] = useState(false);
+  const [errorPago, setErrorPago] = useState('');
+  const [confirmationData, setConfirmationData] = useState(null);
 
   const API_URL_CLIENTE = process.env.REACT_APP_API_URL_CLIENTE;
   const API_TOKEN = process.env.REACT_APP_API_TOKEN;
-  const navigate = useNavigate();
+  const confirmApiUrl = process.env.REACT_APP_PAYPHONE_CONFIRM_API_URL;
+  const payphoneToken = process.env.REACT_APP_PAYPHONE_TOKEN;
 
+  // Leer parámetros de la URL (si venimos de PayPhone)
+  const params = new URLSearchParams(location.search);
+  const payId = params.get('id');
+  const payTxId = params.get('clientTransactionId');
+
+  // A) Confirmación de Pago
+  useEffect(() => {
+    if (!payId) return; // No hay id => no venimos de PayPhone
+
+    if (payId === "0") {
+      // Pago no realizado
+      return;
+    }
+
+    // Caso normal => confirmamos transacción
+    if (!payTxId) {
+      setErrorPago('Faltan parámetros para confirmar el pago.');
+      return;
+    }
+
+    setLoadingPago(true);
+
+    const body = {
+      id: parseInt(payId, 10),
+      clientTxId: payTxId
+    };
+
+    fetch(confirmApiUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${payphoneToken}`
+      },
+      body: JSON.stringify(body)
+    })
+      .then(response => response.json())
+      .then(data => {
+        setConfirmationData(data);
+        setLoadingPago(false);
+
+        // Si la transacción está aprobada => redirigimos a /payphoneResponce con los datos
+        if (data.transactionStatus === 'Approved') {
+          navigate('/payphoneResponce', { state: { confirmationData: data } });
+        }
+      })
+      .catch(err => {
+        setErrorPago(err.message);
+        setLoadingPago(false);
+      });
+  }, [payId, payTxId, confirmApiUrl, payphoneToken, navigate]);
+
+  // B) Lógica de Consulta de Cliente
   const handleConsulta = async (e) => {
     e.preventDefault();
-    setLoading(true);
-    setError('');
+    setLoadingCliente(true);
+    setErrorCliente('');
     setCliente(null);
 
     try {
-      const body = JSON.stringify({
-        token: API_TOKEN,
-        cedula: cedula
-      });
+      const body = JSON.stringify({ token: API_TOKEN, cedula: cedula });
       const response = await fetch(API_URL_CLIENTE, {
         method: 'POST',
         headers: {
@@ -39,9 +97,9 @@ const ConsultaCliente = () => {
       }
       setCliente(data.datos[0]);
     } catch (err) {
-      setError(err.message);
+      setErrorCliente(err.message);
     } finally {
-      setLoading(false);
+      setLoadingCliente(false);
     }
   };
 
@@ -52,10 +110,68 @@ const ConsultaCliente = () => {
   const handleNuevo = () => {
     setCedula('');
     setCliente(null);
-    setError('');
+    setErrorCliente('');
   };
 
-  if (loading) {
+  // ---------------------------------------------------------------------
+  // RENDER según el caso
+  // ---------------------------------------------------------------------
+
+  // 1) Pago fallido => payId === "0"
+  if (payId === "0") {
+    return (
+      <div className="container mt-5 text-center">
+        <h1>Pago no realizado con éxito</h1>
+        <p>Su pago no fue realizado con éxito. Por favor, intente de nuevo.</p>
+        <button className="btn btn-primary mt-3" onClick={() => navigate('/')}>
+          Volver a intentar
+        </button>
+      </div>
+    );
+  }
+
+  // 2) Venimos de PayPhone, pero no aprobado => mostramos datos localmente
+  // (solo si ya terminamos de cargar y no se aprobó)
+  if (payId && payId !== "0" && !loadingPago && confirmationData && confirmationData.transactionStatus !== 'Approved') {
+    return (
+      <div className="container mt-5">
+        <h1>Transacción no aprobada</h1>
+        <p>Estado de la Transacción: {confirmationData.transactionStatus}</p>
+        <p>Código de Autorización: {confirmationData.authorizationCode}</p>
+        <button className="btn btn-secondary mt-3" onClick={() => navigate('/')}>
+          Volver al inicio
+        </button>
+      </div>
+    );
+  }
+
+  // 3) Estamos confirmando la transacción (loadingPago)
+  if (loadingPago) {
+    return (
+      <div className="container mt-5 text-center">
+        <div className="spinner-border" role="status">
+          <span className="visually-hidden">Loading...</span>
+        </div>
+        <p>Confirmando transacción...</p>
+      </div>
+    );
+  }
+
+  // 4) Error de confirmación
+  if (errorPago) {
+    return (
+      <div className="container mt-5 text-center">
+        <h1>Error al confirmar el pago</h1>
+        <p>{errorPago}</p>
+        <button className="btn btn-secondary" onClick={() => navigate('/')}>
+          Volver al inicio
+        </button>
+      </div>
+    );
+  }
+
+  // 5) Flujo normal: consultar cliente
+  if (loadingCliente) {
     return (
       <div className="container mt-5 text-center">
         <h1>Consulta de Cliente</h1>
@@ -67,12 +183,12 @@ const ConsultaCliente = () => {
     );
   }
 
-  if (error) {
+  if (errorCliente) {
     return (
       <div className="container mt-5">
         <h1>Consulta de Cliente</h1>
         <div className="alert alert-danger mt-3">
-          <p>{error}</p>
+          <p>{errorCliente}</p>
           <button className="btn btn-secondary" onClick={handleNuevo}>
             Regresar
           </button>
@@ -81,6 +197,7 @@ const ConsultaCliente = () => {
     );
   }
 
+  // 6) Muestra el formulario o los datos del cliente consultado
   return (
     <div className="container mt-5">
       <h1>Consulta de Cliente</h1>
