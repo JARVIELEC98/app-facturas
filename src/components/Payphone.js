@@ -17,8 +17,7 @@ const Payphone = () => {
   const STOREID = process.env.REACT_APP_PAYPHONE_STOREID;
   
   // Redirige a PaymentResponse luego del pago, para confirmar la transacción
-  const RESPONSEURL = 'http://localhost:3000/paymentResponse';
-
+  const RESPONSEURL = window.location.origin + '/';
 
   useEffect(() => {
     if (!facturaId || !total) {
