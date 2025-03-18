@@ -4,25 +4,32 @@ import { useLocation, useNavigate } from 'react-router-dom';
 
 const Facturas = () => {
   const { state } = useLocation();
-  const cliente = state?.cliente;
   const navigate = useNavigate();
 
+  // El cliente (y otros datos) que llegan por state
+  const cliente = state?.cliente;
+
+  // Estados para la lista de facturas
   const [facturasNoPagadas, setFacturasNoPagadas] = useState([]);
   const [facturasPagadas, setFacturasPagadas] = useState([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // -- ESTADOS PARA MOSTRAR DETALLE DE UNA SOLA FACTURA --
-  const [selectedFactura, setSelectedFactura] = useState(null);
-  const [itemsDetalle, setItemsDetalle] = useState([]);
-  const [loadingDetalle, setLoadingDetalle] = useState(false);
-  const [errorDetalle, setErrorDetalle] = useState('');
+  // ---------------------------
+  // NUEVOS estados para el detalle de factura
+  // ---------------------------
+  const [showDetail, setShowDetail] = useState(false);   // Controla si se muestra la vista de detalle
+  const [invoiceData, setInvoiceData] = useState(null);  // Datos de la factura
+  const [items, setItems] = useState([]);                // Ítems de la factura
+  const [clientData, setClientData] = useState(null);    // Datos del cliente
+  const [loadingDetail, setLoadingDetail] = useState(false);
+  const [errorDetail, setErrorDetail] = useState('');
 
   // Variables de entorno
-  const API_URL_FACTURAS = process.env.REACT_APP_API_URL_FACTURAS;
   const API_TOKEN = process.env.REACT_APP_API_TOKEN;
-  const API_URL_DETALLE_FACTURA = process.env.REACT_APP_API_URL_DETALLE_FACTURA
-    || 'https://sistema.sisnetel.com/api/v1/GetInvoice';
+  const API_URL_FACTURAS = process.env.REACT_APP_API_URL_FACTURAS;
+  const GETINVOICE_API_URL = process.env.REACT_APP_GETINVOICE_API_URL;
+  const CLIENT_API_URL = process.env.REACT_APP_API_URL_CLIENTE;
 
   // 1) OBTENER LISTA DE FACTURAS
   useEffect(() => {
@@ -91,13 +98,16 @@ const Facturas = () => {
 
   // 2) FUNCIÓN PARA VER DETALLE DE UNA FACTURA
   const handleVerFactura = async (factura) => {
-    setSelectedFactura(factura);
-    setItemsDetalle([]);
-    setErrorDetalle('');
-    setLoadingDetalle(true);
+    setShowDetail(true);       // Activamos la vista de detalle
+    setInvoiceData(null);      // Limpiamos la data anterior
+    setItems([]);
+    setClientData(null);
+    setErrorDetail('');
+    setLoadingDetail(true);
 
     try {
-      const response = await fetch(API_URL_DETALLE_FACTURA, {
+      // 2.1) Obtener datos de la factura (GetInvoice)
+      const resp = await fetch(GETINVOICE_API_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -109,117 +119,202 @@ const Facturas = () => {
         })
       });
 
-      if (!response.ok) {
-        throw new Error('Error al obtener detalle de la factura');
+      if (!resp.ok) {
+        throw new Error('Error al llamar a la API GetInvoice');
       }
-      const data = await response.json();
+      const data = await resp.json();
       if (data.estado !== 'exito') {
-        throw new Error('Error en la respuesta de la API');
+        throw new Error('La API de GetInvoice devolvió un estado diferente de exito');
       }
-      setItemsDetalle(data.items || []);
+      setInvoiceData(data.factura);
+      setItems(data.items || []);
+
+      // 2.2) Obtener datos del cliente (GetClientsDetails) usando invoiceData.idcliente
+      if (data.factura && data.factura.idcliente) {
+        const clientResp = await fetch(CLIENT_API_URL, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${API_TOKEN}`
+          },
+          body: JSON.stringify({
+            token: API_TOKEN,
+            idcliente: data.factura.idcliente
+          })
+        });
+        if (!clientResp.ok) {
+          throw new Error('Error al llamar a la API GetClientsDetails');
+        }
+        const clientDataJson = await clientResp.json();
+        if (
+          clientDataJson.estado === 'exito' &&
+          clientDataJson.datos &&
+          clientDataJson.datos.length > 0
+        ) {
+          setClientData(clientDataJson.datos[0]);
+        } else {
+          throw new Error('Error al obtener los datos del cliente');
+        }
+      }
     } catch (error) {
-      setErrorDetalle(error.message);
+      setErrorDetail(error.message);
     } finally {
-      setLoadingDetalle(false);
+      setLoadingDetail(false);
     }
   };
 
-  // RENDER SI ESTAMOS MOSTRANDO DETALLE DE UNA FACTURA
-  if (selectedFactura) {
+  // 3) RENDER CONDICIONAL: si showDetail = true, mostramos la vista de detalle
+  if (showDetail) {
+    // Vista de Detalle de Factura
     return (
-      <div className="container mt-5">
-        <h2>Detalle de Factura #{selectedFactura.id}</h2>
+      <div className="container mt-4">
+        <h2>Datos de la Factura</h2>
 
-        {/* Mostramos también los datos del cliente */}
-        {cliente && (
-          <div className="mb-4">
-            <p>
-              <strong>ID Cliente:</strong> {cliente.id}
-            </p>
-            <p>
-              <strong>Nombre Completo:</strong> {cliente.nombre}
-            </p>
-            <p>
-              <strong>Estado del Servicio:</strong>{' '}
-              <span
-                className={
-                  cliente.estado === 'ACTIVO' ? 'text-success' : 'text-danger'
-                }
-              >
-                {cliente.estado === 'ACTIVO' ? 'Activo' : 'Suspendido'}
-              </span>
-            </p>
+        {loadingDetail ? (
+          <div className="mt-3">
+            <div className="spinner-border text-primary" role="status">
+              <span className="visually-hidden">Cargando detalle...</span>
+            </div>
+            <p className="mt-2">Obteniendo datos de la factura...</p>
           </div>
-        )}
-
-        {loadingDetalle ? (
-          <div className="spinner-border text-primary" role="status">
-            <span className="visually-hidden">Cargando...</span>
+        ) : errorDetail ? (
+          <div className="alert alert-danger mt-3">
+            <p>{errorDetail}</p>
+            <button className="btn btn-secondary" onClick={() => setShowDetail(false)}>
+              Regresar
+            </button>
           </div>
-        ) : errorDetalle ? (
-          <div className="alert alert-danger mt-3">{errorDetalle}</div>
         ) : (
+          // MOSTRAMOS LA MISMA ESTRUCTURA QUE EN PagoFactura.js
           <>
-            <p>
-              <strong>Total:</strong> ${selectedFactura.total}
-            </p>
-            <p>
-              <strong>Estado de la Factura:</strong> {selectedFactura.estado}
-            </p>
-            {/* Si la factura tiene la propiedad urlpdf */}
-            {selectedFactura.urlpdf && (
-              <p>
-                <strong>Ver Factura en PDF:</strong>{' '}
-                <a
-                  href={selectedFactura.urlpdf}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  Abrir PDF
-                </a>
-              </p>
+            {invoiceData && (
+              <div className="card">
+                <div className="card-body">
+                  <p><strong>ID Cliente:</strong> {invoiceData.idcliente}</p>
+
+                  {clientData && (
+                    <p>
+                      <strong>Cliente:</strong> {clientData.nombre}{' '}
+                      <span
+                        style={{
+                          border: `2px solid ${
+                            clientData.estado.toLowerCase() === 'activo' ? 'green' : 'red'
+                          }`,
+                          padding: '2px 4px',
+                          borderRadius: '4px'
+                        }}
+                      >
+                        {clientData.estado}
+                      </span>
+                    </p>
+                  )}
+
+                  <p><strong>Fecha de Emisión:</strong> {invoiceData.emitido}</p>
+
+                  <p>
+                    <strong>Estado:</strong>{' '}
+                    {invoiceData.estado.toLowerCase() === 'pagado' ? (
+                      <>
+                        <span
+                          style={{
+                            border: '2px solid green',
+                            padding: '2px 4px',
+                            borderRadius: '4px'
+                          }}
+                        >
+                          {invoiceData.estado}
+                        </span>{' '}
+                        <span
+                          style={{
+                            border: '2px solid green',
+                            padding: '2px 4px',
+                            borderRadius: '4px',
+                            marginLeft: '6px'
+                          }}
+                        >
+                          FACTURA - {invoiceData.id}
+                        </span>
+                      </>
+                    ) : invoiceData.estado.toLowerCase() === 'vencido' ? (
+                      <>
+                        <span
+                          style={{
+                            border: '2px solid red',
+                            padding: '2px 4px',
+                            borderRadius: '4px'
+                          }}
+                        >
+                          {invoiceData.estado}
+                        </span>{' '}
+                        <span
+                          style={{
+                            border: '2px solid red',
+                            padding: '2px 4px',
+                            borderRadius: '4px',
+                            marginLeft: '6px'
+                          }}
+                        >
+                          FACTURA - {invoiceData.id}
+                        </span>
+                      </>
+                    ) : (
+                      invoiceData.estado
+                    )}
+                  </p>
+
+                  {/* Ítems / Descripción */}
+                  {items.length > 0 && (
+                    <div className="mb-3">
+                      {items.map((item, index) => (
+                        <p key={index}>
+                          <strong>Descripción:</strong> {item.descrp}
+                        </p>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Subtotal, Impuestos, Total alineados a la derecha */}
+                  <div className="text-end">
+                    <p>
+                      <strong>Subtotal:</strong> {invoiceData.subtotal2 || invoiceData.subtotal}
+                    </p>
+                    <p>
+                      <strong>Impuestos:</strong> {invoiceData.impuesto2}
+                    </p>
+                    <p>
+                      <strong>Total:</strong> {invoiceData.total2 || invoiceData.total}
+                    </p>
+                  </div>
+
+                  {invoiceData.urlpdf && (
+                    <p>
+                      <strong>Ver PDF:</strong>{' '}
+                      <a
+                        href={invoiceData.urlpdf}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        Abrir Factura PDF
+                      </a>
+                    </p>
+                  )}
+                  <p>
+                    <strong>Forma de Pago:</strong> {invoiceData.formapago || 'N/A'}
+                  </p>
+                </div>
+              </div>
             )}
 
-            {/* Tabla de ítems */}
-            <h4>Ítems de la Factura</h4>
-            {itemsDetalle.length === 0 ? (
-              <p>No hay ítems para esta factura.</p>
-            ) : (
-              <table className="table table-bordered">
-                <thead>
-                  <tr>
-                    <th>Descripción</th>
-                    <th>Unidades</th>
-                    <th>Precio</th>
-                    <th>Total</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {itemsDetalle.map((item, index) => (
-                    <tr key={index}>
-                      <td>{item.descrp}</td>
-                      <td>{item.unidades}</td>
-                      <td>{item.precio}</td>
-                      <td>{item.total}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
+            <button className="btn btn-secondary mt-3" onClick={() => setShowDetail(false)}>
+              Regresar
+            </button>
           </>
         )}
-
-        <button
-          className="btn btn-secondary mt-3"
-          onClick={() => setSelectedFactura(null)}
-        >
-          Regresar
-        </button>
       </div>
     );
   }
 
-  // RENDER PRINCIPAL: LISTA DE FACTURAS
+  // 4) VISTA PRINCIPAL (LISTA DE FACTURAS)
   if (loading) {
     return (
       <div className="container mt-5 text-center">
@@ -301,7 +396,7 @@ const Facturas = () => {
                 <td>${factura.total}</td>
                 <td>{factura.estado}</td>
                 <td>
-                  {/* BOTÓN PAYPHONE (ya existente) */}
+                  {/* BOTÓN PAYPHONE */}
                   <button
                     className="btn btn-success me-2"
                     onClick={() =>
@@ -317,7 +412,7 @@ const Facturas = () => {
                     PAYPHONE
                   </button>
 
-                  {/* BOTÓN "DE UNA" -> AHORA REDIRIGE A PagoFactura.js */}
+                  {/* BOTÓN "DE UNA" */}
                   <button
                     className="btn btn-primary me-2"
                     onClick={() =>
@@ -325,9 +420,8 @@ const Facturas = () => {
                         state: {
                           amount: factura.total,
                           reference: factura.id,
-                          pasarela: 'OTRO_METODO', // opcional
-                          // Pasamos el cliente completo:
-                          cliente: cliente
+                          pasarela: 'OTRO_METODO',
+                          cliente
                         }
                       })
                     }
@@ -335,7 +429,7 @@ const Facturas = () => {
                     DE UNA
                   </button>
 
-                  {/* BOTÓN DEPÓSITO -> podrías hacer lo mismo */}
+                  {/* BOTÓN DEPÓSITO */}
                   <button
                     className="btn btn-warning me-2"
                     onClick={() =>
@@ -344,7 +438,7 @@ const Facturas = () => {
                           amount: factura.total,
                           reference: factura.id,
                           pasarela: 'DEPOSITO',
-                          cliente: cliente
+                          cliente
                         }
                       })
                     }
@@ -352,7 +446,7 @@ const Facturas = () => {
                     DEPÓSITO
                   </button>
 
-                  {/* BOTÓN para ver sólo esta factura */}
+                  {/* BOTÓN para ver sólo esta factura (detalle local) */}
                   <button
                     className="btn btn-info"
                     onClick={() => handleVerFactura(factura)}
@@ -387,7 +481,7 @@ const Facturas = () => {
                 <td>${factura.total}</td>
                 <td>{factura.estado}</td>
                 <td>
-                  {/* BOTÓN para ver sólo esta factura */}
+                  {/* BOTÓN para ver sólo esta factura (detalle local) */}
                   <button
                     className="btn btn-info"
                     onClick={() => handleVerFactura(factura)}
