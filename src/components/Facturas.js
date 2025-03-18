@@ -1,4 +1,4 @@
-// src/components/Facturas.js
+// Facturas.js
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
@@ -21,14 +21,10 @@ const Facturas = () => {
   // Variables de entorno
   const API_URL_FACTURAS = process.env.REACT_APP_API_URL_FACTURAS;
   const API_TOKEN = process.env.REACT_APP_API_TOKEN;
-  // API para obtener detalles de una factura en particular
-  const API_URL_DETALLE_FACTURA =
-    process.env.REACT_APP_API_URL_DETALLE_FACTURA ||
-    'https://sistema.sisnetel.com/api/v1/GetInvoice';
+  const API_URL_DETALLE_FACTURA = process.env.REACT_APP_API_URL_DETALLE_FACTURA
+    || 'https://sistema.sisnetel.com/api/v1/GetInvoice';
 
-  // -----------------------------------------------------
-  // 1) OBTENER LISTA DE FACTURAS (no pagadas y pagadas)
-  // -----------------------------------------------------
+  // 1) OBTENER LISTA DE FACTURAS
   useEffect(() => {
     if (!cliente) return;
 
@@ -93,12 +89,10 @@ const Facturas = () => {
     fetchFacturas();
   }, [cliente, API_TOKEN, API_URL_FACTURAS]);
 
-  // -----------------------------------------------------
   // 2) FUNCIÓN PARA VER DETALLE DE UNA FACTURA
-  // -----------------------------------------------------
   const handleVerFactura = async (factura) => {
     setSelectedFactura(factura);
-    setItemsDetalle([]);       // Limpia ítems anteriores
+    setItemsDetalle([]);
     setErrorDetalle('');
     setLoadingDetalle(true);
 
@@ -130,11 +124,8 @@ const Facturas = () => {
     }
   };
 
-  // -----------------------------------------------------
-  // 3) RENDER SI ESTAMOS MOSTRANDO DETALLE DE UNA FACTURA
-  // -----------------------------------------------------
+  // RENDER SI ESTAMOS MOSTRANDO DETALLE DE UNA FACTURA
   if (selectedFactura) {
-    // Si el usuario ya hizo clic en "Ver Factura", mostramos SOLO esta factura
     return (
       <div className="container mt-5">
         <h2>Detalle de Factura #{selectedFactura.id}</h2>
@@ -228,9 +219,7 @@ const Facturas = () => {
     );
   }
 
-  // -----------------------------------------------------
-  // 4) RENDER PRINCIPAL: LISTA DE FACTURAS (cuando selectedFactura es null)
-  // -----------------------------------------------------
+  // RENDER PRINCIPAL: LISTA DE FACTURAS
   if (loading) {
     return (
       <div className="container mt-5 text-center">
@@ -312,6 +301,7 @@ const Facturas = () => {
                 <td>${factura.total}</td>
                 <td>{factura.estado}</td>
                 <td>
+                  {/* BOTÓN PAYPHONE (ya existente) */}
                   <button
                     className="btn btn-success me-2"
                     onClick={() =>
@@ -326,22 +316,42 @@ const Facturas = () => {
                   >
                     PAYPHONE
                   </button>
+
+                  {/* BOTÓN "DE UNA" -> AHORA REDIRIGE A PagoFactura.js */}
                   <button
                     className="btn btn-primary me-2"
                     onClick={() =>
-                      alert(`Pagando DE UNA la factura con ID: ${factura.id}`)
+                      navigate('/pagofactura', {
+                        state: {
+                          amount: factura.total,
+                          reference: factura.id,
+                          pasarela: 'OTRO_METODO', // opcional
+                          // Pasamos el cliente completo:
+                          cliente: cliente
+                        }
+                      })
                     }
                   >
                     DE UNA
                   </button>
+
+                  {/* BOTÓN DEPÓSITO -> podrías hacer lo mismo */}
                   <button
                     className="btn btn-warning me-2"
                     onClick={() =>
-                      alert(`Pagando con DEPÓSITO la factura con ID: ${factura.id}`)
+                      navigate('/pagofactura', {
+                        state: {
+                          amount: factura.total,
+                          reference: factura.id,
+                          pasarela: 'DEPOSITO',
+                          cliente: cliente
+                        }
+                      })
                     }
                   >
                     DEPÓSITO
                   </button>
+
                   {/* BOTÓN para ver sólo esta factura */}
                   <button
                     className="btn btn-info"
