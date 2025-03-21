@@ -5,6 +5,7 @@ import { FaExclamationTriangle } from 'react-icons/fa'; // Ícono de alerta
 const PromesaPago = () => {
   // Recupera la cédula guardada desde el login (si se necesita)
   const cedulaGuardada = localStorage.getItem('clienteCedula');
+  const nombreAgente = localStorage.getItem('clienteNombre') || '';
 
   // Estados para la consulta del cliente
   const [cedula, setCedula] = useState('');
@@ -25,7 +26,7 @@ const PromesaPago = () => {
   // Variables de entorno y URLs
   const API_URL_CLIENTE = process.env.REACT_APP_API_URL_CLIENTE; 
   const API_URL_FACTURAS = process.env.REACT_APP_API_URL_FACTURAS;
-  const tokenEnv = process.env.REACT_APP_API_TOKEN;
+  const tokenEnv = process.env[`REACT_APP_API_TOKEN_${cedulaGuardada}`];
   // API3 para registrar la promesa de pago (lo usamos directamente)
   const API_URL_PROMESAPAGO = process.env.REACT_APP_PROMESA_API_URL;
 
@@ -196,7 +197,7 @@ const PromesaPago = () => {
         token: tokenEnv,
         idfactura: factura.id,
         fechalimite: fechaLimite,
-        descripcion: "solicitada por cliente aprobada por agente"
+        descripcion: `solicitada por cliente aprobada por agente ${nombreAgente}`
       });
 
       const response = await fetch(API_URL_PROMESAPAGO, {
@@ -212,13 +213,18 @@ const PromesaPago = () => {
       const data = await response.json();
 
       if (data.estado !== 'exito') {
+        // Si ya existe una promesa activa, mostramos un mensaje reducido y empático
+        if (data.mensaje && data.mensaje.includes("promesa de pago activa")) {
+          throw new Error("Ya tienes una promesa activa. Si tienes dudas, contacta a tu agente. 😊");
+        }
         throw new Error(data.mensaje || 'Error en la promesa de pago');
       }
 
-      // Muestra un mensaje bonito de éxito
-      setPromesaMessage(
-        `${data.mensaje} Su corte de servicio será a la fecha límite ${fechaLimite}.`
-      );
+     // Dentro de handlePromesa, donde se asigna el mensaje de éxito:
+setPromesaMessage(
+  `¡Promesa de pago registrada correctamente! 🎉 Su corte de servicio será a la fecha límite ${fechaLimite}. ¡Gracias por confiar en nosotros!`
+);
+
     } catch (err) {
       setErrorPromesa(err.message);
     } finally {
@@ -274,7 +280,6 @@ const PromesaPago = () => {
           ) : (
             <div className="mt-4">
               <h2>Datos del Cliente</h2>
-              {/* Se muestra el ID del cliente, luego el nombre y demás datos */}
               <p><strong>ID del Cliente:</strong> {cliente.id}</p>
               <p><strong>Nombre Completo:</strong> {cliente.nombre}</p>
               <p><strong>Cédula:</strong> {cliente.cedula}</p>
@@ -289,7 +294,6 @@ const PromesaPago = () => {
                 </span>
               </p>
 
-              {/* Sección para mostrar datos de la factura */}
               {loadingFactura ? (
                 <div className="text-center">
                   <div className="spinner-border text-secondary" role="status">
@@ -312,6 +316,13 @@ const PromesaPago = () => {
                   </p>
                 </div>
               ) : null}
+
+              {/* Mensaje para seleccionar el plazo de pago */}
+              <div className="mb-2">
+                <p className="text-muted">
+                  ¡Elige cuántos días necesitas para realizar tu pago! <span role="img" aria-label="calendar">📅</span>
+                </p>
+              </div>
 
               {/* Botones de promesa de pago */}
               <div className="mt-3">
@@ -341,7 +352,13 @@ const PromesaPago = () => {
                 </button>
               </div>
 
-              {/* Mensaje de éxito o error de la promesa */}
+              {/* Mensaje informativo sobre el recargo al seleccionar 8 días */}
+              <div className="mt-2">
+                <p className="text-muted">
+                  Nota: Si eliges la opción de <strong>8 días</strong>, se aplicará un recargo de <strong>$1</strong> en tu factura actual. <span role="img" aria-label="money">💵</span>
+                </p>
+              </div>
+
               {loadingPromesa && (
                 <div className="text-center mt-3">
                   <div className="spinner-border text-info" role="status">

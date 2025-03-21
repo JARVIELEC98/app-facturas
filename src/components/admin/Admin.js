@@ -9,7 +9,7 @@ const Admin = () => {
   // Estado de autenticación
   const [isAuthenticated, setIsAuthenticated] = useState(!!localStorage.getItem('techLogged'));
   
-  // Estado para nombre y cédula
+  // Estado para nombre y cédula del agente
   const [nombreAgente, setNombreAgente] = useState(localStorage.getItem('clienteNombre') || '');
   const [cedulaAgente, setCedulaAgente] = useState(localStorage.getItem('clienteCedula') || '');
 
@@ -22,10 +22,12 @@ const Admin = () => {
   // Estado para el menú lateral
   const [menuOpen, setMenuOpen] = useState(true);
 
+  // Evento de login
   const handleLogin = (e) => {
     e.preventDefault();
     setError('');
 
+    // Llama a la API de clientes usando el token genérico (o de autorización general)
     fetch(`${process.env.REACT_APP_API_URL_CLIENTE}`, {
       method: 'POST',
       headers: {
@@ -40,32 +42,39 @@ const Admin = () => {
     })
       .then((res) => res.json())
       .then((data) => {
-        // Verifica que la respuesta tenga estado "exito" y que el token_cliente no esté vacío
+        console.log('Respuesta de login:', data);
+
+        // Construir dinámicamente la variable de entorno con el token esperado para la cédula ingresada
+        const tokenEsperado = process.env[`REACT_APP_API_TOKEN_${cedula}`];
+        console.log('Token esperado:', tokenEsperado);
+
+        // Verificar que la respuesta sea exitosa y que el token devuelto coincida con el token esperado
         if (
           data.estado === 'exito' &&
           data.datos &&
           data.datos.length > 0 &&
           data.datos[0].token_cliente &&
-          data.datos[0].token_cliente.trim() !== ''
+          data.datos[0].token_cliente.trim() !== '' &&
+          tokenEsperado && tokenEsperado === data.datos[0].token_cliente
         ) {
-          // Guardar flag de sesión
+          // Guardar flag de sesión y token en localStorage
           localStorage.setItem('techLogged', 'true');
-          // Guardar token
           localStorage.setItem('clienteToken', data.datos[0].token_cliente);
 
-          // Guardar nombre y cédula
+          // Guardar nombre y cédula obtenidos
           const nombre = data.datos[0].nombre || 'Usuario';
-          const cedulaResp = data.datos[0].cedula || '';
-
+          const cedulaResp = data.datos[0].cedula || cedula; 
           setNombreAgente(nombre);
           setCedulaAgente(cedulaResp);
-
           localStorage.setItem('clienteNombre', nombre);
           localStorage.setItem('clienteCedula', cedulaResp);
 
+          // **ALMACENAMOS TAMBIÉN EL CODIGO** (si lo necesitaremos en otros componentes)
+          localStorage.setItem('clienteCodigo', codigo);
+
           setIsAuthenticated(true);
         } else {
-          setError('Usuario no autorizado, comuníquese con el administrador');
+          setError('Usuario no autorizado o token incorrecto, comuníquese con el administrador');
         }
       })
       .catch((err) => {
@@ -74,6 +83,7 @@ const Admin = () => {
       });
   };
 
+  // Mostrar u ocultar la contraseña
   const toggleShowPassword = () => {
     setShowPassword(!showPassword);
   };
@@ -84,6 +94,7 @@ const Admin = () => {
     localStorage.removeItem('clienteToken');
     localStorage.removeItem('clienteNombre');
     localStorage.removeItem('clienteCedula');
+    localStorage.removeItem('clienteCodigo'); // limpiar el código también
     setIsAuthenticated(false);
     setNombreAgente('');
     setCedulaAgente('');
@@ -148,20 +159,17 @@ const Admin = () => {
       <div className={`sidebar ${menuOpen ? 'expanded' : 'collapsed'}`}>
         <div className="profile-section">
           <div className="profile-info">
-            {/* Mostrar el nombre y debajo la cédula */}
             <h3 className="profile-name">{nombreAgente}</h3>
             <span className="profile-role">{cedulaAgente}</span>
           </div>
         </div>
-
         <button className="toggle-btn" onClick={toggleMenu}>
           {menuOpen ? '<' : '>'}
         </button>
-
         <AdminMenu menuOpen={menuOpen} handleLogout={handleLogout} />
       </div>
-
       <div className="main-content">
+        {/* <Outlet /> para renderizar sub-rutas */}
         <Outlet />
       </div>
     </div>
