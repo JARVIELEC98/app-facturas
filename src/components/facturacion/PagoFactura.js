@@ -1,4 +1,4 @@
-// PagoFactura.js
+// src/components/facturacion/PagoFactura.js
 import React, { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
@@ -6,6 +6,22 @@ const PagoFactura = () => {
   const { state } = useLocation();
   const navigate = useNavigate();
 
+  // Datos que llegan por state
+  let amount = 0;
+  let reference = '';
+  let transactionId = '';
+  let pasarela = 'Payphone';
+  let cliente = null;
+
+  if (state) {
+    amount = state.amount;
+    reference = state.reference;
+    transactionId = state.transactionId || '';
+    pasarela = state.pasarela || 'Payphone';
+    cliente = state.cliente || null;
+  }
+
+  // Estados
   const [invoiceData, setInvoiceData] = useState(null);
   const [items, setItems] = useState([]);
   const [clientData, setClientData] = useState(null);
@@ -15,17 +31,7 @@ const PagoFactura = () => {
 
   const paidInvoiceCalledRef = useRef(false);
 
-  let amount = 0;
-  let reference = '';
-  let transactionId = '';
-  let pasarela = 'Payphone';
-  if (state) {
-    amount = state.amount;
-    reference = state.reference;
-    transactionId = state.transactionId || '';
-    pasarela = state.pasarela || 'Payphone';
-  }
-
+  // Variables de entorno
   const API_TOKEN = process.env.REACT_APP_API_TOKEN;
   const PAIDINVOICE_API_URL = process.env.REACT_APP_PAIDINVOICE_API_URL;
   const GETINVOICE_API_URL = process.env.REACT_APP_GETINVOICE_API_URL;
@@ -36,55 +42,59 @@ const PagoFactura = () => {
     if (!reference) return;
     if (paidInvoiceCalledRef.current) return;
 
+    paidInvoiceCalledRef.current = true;
     setLoading(true);
     setError('');
-    paidInvoiceCalledRef.current = true;
 
     fetch(PAIDINVOICE_API_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${API_TOKEN}`,
+        Authorization: `Bearer ${API_TOKEN}`
       },
       body: JSON.stringify({
         token: API_TOKEN,
         idfactura: reference,
-        pasarela: pasarela,
+        pasarela,
         idtransaccion: transactionId || Date.now().toString(),
-        cantidad: 1,
-      }),
+        cantidad: 1
+      })
     })
       .then(res => res.json())
       .then(data => {
         if (data.estado === 'exito') {
           setPaidInvoiceResponse(data);
+          // Llamamos a GetInvoice para obtener los datos actualizados de la factura
           return fetch(GETINVOICE_API_URL, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              Authorization: `Bearer ${API_TOKEN}`,
+              Authorization: `Bearer ${API_TOKEN}`
             },
             body: JSON.stringify({
               token: API_TOKEN,
-              idfactura: reference,
-            }),
+              idfactura: reference
+            })
           });
         } else {
           throw new Error('Error al registrar el pago');
         }
       })
       .then(response => {
+        if (!response) return; // si ya hubo un error, no continuar
         if (!response.ok) {
           throw new Error('Error al llamar a la API GetInvoice');
         }
         return response.json();
       })
       .then(data => {
-        if (data.estado !== 'exito') {
+        if (data && data.estado !== 'exito') {
           throw new Error('La API de GetInvoice devolvió un estado diferente de exito');
         }
-        setInvoiceData(data.factura);
-        setItems(data.items || []);
+        if (data) {
+          setInvoiceData(data.factura);
+          setItems(data.items || []);
+        }
         setLoading(false);
       })
       .catch(err => {
@@ -100,12 +110,12 @@ const PagoFactura = () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${API_TOKEN}`,
+          Authorization: `Bearer ${API_TOKEN}`
         },
         body: JSON.stringify({
           token: API_TOKEN,
-          idcliente: invoiceData.idcliente,
-        }),
+          idcliente: invoiceData.idcliente
+        })
       })
         .then(res => res.json())
         .then(data => {
@@ -125,7 +135,7 @@ const PagoFactura = () => {
     return (
       <div className="container mt-5 text-center">
         <h1>No hay datos de pago</h1>
-        <button className="btn btn-primary mt-3" onClick={() => navigate('/')}>
+        <button className="btn btn-primary mt-3" onClick={() => navigate('/clientes')}>
           Volver al inicio
         </button>
       </div>
@@ -150,7 +160,7 @@ const PagoFactura = () => {
         <div className="alert alert-danger mt-3">
           <p>{error}</p>
         </div>
-        <button className="btn btn-secondary" onClick={() => navigate('/')}>
+        <button className="btn btn-secondary" onClick={() => navigate('/clientes')}>
           Volver al inicio
         </button>
       </div>
@@ -204,12 +214,9 @@ const PagoFactura = () => {
                 </span>
               </p>
             )}
-
             <p>
               <strong>Fecha de Emisión:</strong> {invoiceData.emitido}
             </p>
-
-            {/* Estado de la factura */}
             <p>
               <strong>Estado:</strong>{' '}
               {invoiceData.estado.toLowerCase() === 'pagado' ? (
@@ -262,8 +269,6 @@ const PagoFactura = () => {
                 invoiceData.estado
               )}
             </p>
-
-            {/* Descripción de la factura (ítems) */}
             {items.length > 0 && (
               <div className="mb-3">
                 {items.map((item, index) => (
@@ -273,8 +278,6 @@ const PagoFactura = () => {
                 ))}
               </div>
             )}
-
-            {/* Alineación a la derecha de Subtotal, Impuestos y Total */}
             <div className="text-end mt-3">
               <p>
                 <strong>Subtotal:</strong> {invoiceData.subtotal2 || invoiceData.subtotal}
@@ -286,7 +289,6 @@ const PagoFactura = () => {
                 <strong>Total:</strong> {invoiceData.total2 || invoiceData.total}
               </p>
             </div>
-
             {invoiceData.urlpdf && (
               <p>
                 <strong>Ver PDF:</strong>{' '}
@@ -306,7 +308,7 @@ const PagoFactura = () => {
         </div>
       )}
 
-      <button className="btn btn-primary mt-4" onClick={() => navigate('/')}>
+      <button className="btn btn-primary mt-4" onClick={() => navigate('/clientes')}>
         Volver al inicio
       </button>
     </div>

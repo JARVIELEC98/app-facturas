@@ -1,0 +1,42 @@
+/* src/components/Home.css */
+
+/* Ajusta el tamaño de la imagen */
+.sisnetel-logo {
+    max-width: 300px;  /* Ajusta según tu preferencia */
+    width: 100%;       /* Que sea responsive */
+    height: auto;      /* Mantener proporción */
+  }
+  
+  /* Botón con gradiente azul */
+  .btn-gradient-blue {
+    background: linear-gradient(135deg, #2193b0 0%, #6dd5ed 100%);
+    color: #fff;
+    border: none;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+  
+  .btn-gradient-blue:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 15px rgba(33, 147, 176, 0.3);
+    color: #fff;
+  }
+  
+  /* Botón con gradiente verde */
+  .btn-gradient-green {
+    background: linear-gradient(135deg, #00b09b 0%, #96c93d 100%);
+    color: #fff;
+    border: none;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+  
+  .btn-gradient-green:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 15px rgba(0, 176, 155, 0.3);
+    color: #fff;
+  }
+  
+  /* Opcional: si quieres que las letras se vean en negrita */
+  .btn-gradient-blue, .btn-gradient-green {
+    font-weight: 600;
+  }
+  

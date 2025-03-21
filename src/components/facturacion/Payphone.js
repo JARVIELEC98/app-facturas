@@ -1,4 +1,4 @@
-// src/components/Payphone.js
+// src/components/facturacion/Payphone.js
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
@@ -15,14 +15,13 @@ const Payphone = () => {
   const API_URL = process.env.REACT_APP_PAYPHONE_API_URL;
   const TOKEN = process.env.REACT_APP_PAYPHONE_TOKEN;
   const STOREID = process.env.REACT_APP_PAYPHONE_STOREID;
-  
-  // Redirige a PaymentResponse luego del pago, para confirmar la transacción
-  const RESPONSEURL = window.location.origin + "/";
 
+  // Ajustamos para que la respuesta regrese a /clientes
+  const RESPONSEURL = window.location.origin + '/clientes';
 
   useEffect(() => {
     if (!facturaId || !total) {
-      setError("Datos de la factura incompletos.");
+      setError('Datos de la factura incompletos.');
       return;
     }
     setLoading(true);
@@ -31,7 +30,7 @@ const Payphone = () => {
     const bodyJSON = {
       amount: total * 106,
       amountWithoutTax: total * 106,
-      currency: "USD",
+      currency: 'USD',
       storeId: STOREID,
       reference: facturaId.toString(),
       clientTransactionId,
@@ -39,12 +38,12 @@ const Payphone = () => {
     };
 
     const headers = {
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${TOKEN}`
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${TOKEN}`
     };
 
     fetch(API_URL, {
-      method: "POST",
+      method: 'POST',
       headers,
       body: JSON.stringify(bodyJSON)
     })
@@ -54,12 +53,12 @@ const Payphone = () => {
           setPayLink(data.payWithCard);
           setShowConfirmation(true);
           setLoading(false);
-          // Muestra la pantalla de confirmación por 3 segundos y luego redirige al enlace de pago
+          // Redirigimos tras 3s
           setTimeout(() => {
             window.location.href = data.payWithCard;
           }, 3000);
         } else {
-          setError("No se recibió un enlace de pago (payWithCard).");
+          setError('No se recibió un enlace de pago (payWithCard).');
           setLoading(false);
         }
       })
@@ -86,7 +85,7 @@ const Payphone = () => {
       <div className="container mt-5">
         <h1>Error en PayPhone</h1>
         <p>{error}</p>
-        <button className="btn btn-secondary" onClick={() => navigate(-1)}>
+        <button className="btn btn-secondary" onClick={() => navigate('/clientes')}>
           Regresar
         </button>
       </div>
@@ -105,9 +104,9 @@ const Payphone = () => {
                 <p><strong>ID Cliente:</strong> {cliente.id}</p>
                 <p><strong>Nombre:</strong> {cliente.nombre}</p>
                 <p>
-                  <strong>Estado:</strong>
-                  <span className={cliente.estado === "ACTIVO" ? "text-success" : "text-danger"}>
-                    {cliente.estado === "ACTIVO" ? " Activo" : " Suspendido"}
+                  <strong>Estado:</strong>{' '}
+                  <span className={cliente.estado === 'ACTIVO' ? 'text-success' : 'text-danger'}>
+                    {cliente.estado === 'ACTIVO' ? ' Activo' : ' Suspendido'}
                   </span>
                 </p>
               </div>
@@ -128,7 +127,7 @@ const Payphone = () => {
     <div className="container mt-5">
       <h1>Sin Enlace de Pago</h1>
       <p>No se encontró un enlace de pago (payWithCard). Revise la configuración.</p>
-      <button className="btn btn-secondary" onClick={() => navigate(-1)}>
+      <button className="btn btn-secondary" onClick={() => navigate('/clientes')}>
         Regresar
       </button>
     </div>

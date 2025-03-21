@@ -1,4 +1,4 @@
-// Facturas.js
+// src/components/facturacion/Facturas.js
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
@@ -6,7 +6,7 @@ const Facturas = () => {
   const { state } = useLocation();
   const navigate = useNavigate();
 
-  // El cliente (y otros datos) que llegan por state
+  // El cliente que llega por state
   const cliente = state?.cliente;
 
   // Estados para la lista de facturas
@@ -15,13 +15,11 @@ const Facturas = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // ---------------------------
-  // NUEVOS estados para el detalle de factura
-  // ---------------------------
-  const [showDetail, setShowDetail] = useState(false);   // Controla si se muestra la vista de detalle
-  const [invoiceData, setInvoiceData] = useState(null);  // Datos de la factura
-  const [items, setItems] = useState([]);                // Ítems de la factura
-  const [clientData, setClientData] = useState(null);    // Datos del cliente
+  // Estados para el detalle de factura
+  const [showDetail, setShowDetail] = useState(false);
+  const [invoiceData, setInvoiceData] = useState(null);
+  const [items, setItems] = useState([]);
+  const [clientData, setClientData] = useState(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [errorDetail, setErrorDetail] = useState('');
 
@@ -38,6 +36,7 @@ const Facturas = () => {
     const fetchFacturas = async () => {
       setLoading(true);
       setError('');
+
       try {
         // Facturas NO PAGADAS
         const bodyNoPagadas = JSON.stringify({
@@ -98,8 +97,8 @@ const Facturas = () => {
 
   // 2) FUNCIÓN PARA VER DETALLE DE UNA FACTURA
   const handleVerFactura = async (factura) => {
-    setShowDetail(true);       // Activamos la vista de detalle
-    setInvoiceData(null);      // Limpiamos la data anterior
+    setShowDetail(true);
+    setInvoiceData(null);
     setItems([]);
     setClientData(null);
     setErrorDetail('');
@@ -129,7 +128,7 @@ const Facturas = () => {
       setInvoiceData(data.factura);
       setItems(data.items || []);
 
-      // 2.2) Obtener datos del cliente (GetClientsDetails) usando invoiceData.idcliente
+      // 2.2) Obtener datos del cliente
       if (data.factura && data.factura.idcliente) {
         const clientResp = await fetch(CLIENT_API_URL, {
           method: 'POST',
@@ -165,11 +164,9 @@ const Facturas = () => {
 
   // 3) RENDER CONDICIONAL: si showDetail = true, mostramos la vista de detalle
   if (showDetail) {
-    // Vista de Detalle de Factura
     return (
       <div className="container mt-4">
         <h2>Datos de la Factura</h2>
-
         {loadingDetail ? (
           <div className="mt-3">
             <div className="spinner-border text-primary" role="status">
@@ -185,13 +182,11 @@ const Facturas = () => {
             </button>
           </div>
         ) : (
-          // MOSTRAMOS LA MISMA ESTRUCTURA QUE EN PagoFactura.js
           <>
             {invoiceData && (
               <div className="card">
                 <div className="card-body">
                   <p><strong>ID Cliente:</strong> {invoiceData.idcliente}</p>
-
                   {clientData && (
                     <p>
                       <strong>Cliente:</strong> {clientData.nombre}{' '}
@@ -208,9 +203,7 @@ const Facturas = () => {
                       </span>
                     </p>
                   )}
-
                   <p><strong>Fecha de Emisión:</strong> {invoiceData.emitido}</p>
-
                   <p>
                     <strong>Estado:</strong>{' '}
                     {invoiceData.estado.toLowerCase() === 'pagado' ? (
@@ -261,8 +254,6 @@ const Facturas = () => {
                       invoiceData.estado
                     )}
                   </p>
-
-                  {/* Ítems / Descripción */}
                   {items.length > 0 && (
                     <div className="mb-3">
                       {items.map((item, index) => (
@@ -272,8 +263,6 @@ const Facturas = () => {
                       ))}
                     </div>
                   )}
-
-                  {/* Subtotal, Impuestos, Total alineados a la derecha */}
                   <div className="text-end">
                     <p>
                       <strong>Subtotal:</strong> {invoiceData.subtotal2 || invoiceData.subtotal}
@@ -285,7 +274,6 @@ const Facturas = () => {
                       <strong>Total:</strong> {invoiceData.total2 || invoiceData.total}
                     </p>
                   </div>
-
                   {invoiceData.urlpdf && (
                     <p>
                       <strong>Ver PDF:</strong>{' '}
@@ -304,7 +292,6 @@ const Facturas = () => {
                 </div>
               </div>
             )}
-
             <button className="btn btn-secondary mt-3" onClick={() => setShowDetail(false)}>
               Regresar
             </button>
@@ -333,7 +320,7 @@ const Facturas = () => {
         <h1>Facturas del Cliente</h1>
         <div className="alert alert-danger mt-3">
           <p>{error}</p>
-          <button className="btn btn-secondary" onClick={() => navigate(-1)}>
+          <button className="btn btn-secondary" onClick={() => navigate('/clientes')}>
             Regresar
           </button>
         </div>
@@ -343,13 +330,10 @@ const Facturas = () => {
 
   return (
     <div className="container mt-5">
-      <button onClick={() => navigate(-1)} className="btn btn-secondary">
+      <button onClick={() => navigate('/clientes')} className="btn btn-secondary">
         Regresar
       </button>
-
       <h1 className="mt-3">Facturas del Cliente</h1>
-
-      {/* Datos del Cliente */}
       {cliente && (
         <div className="mb-4">
           <p>
@@ -364,11 +348,7 @@ const Facturas = () => {
           </p>
           <p>
             <strong>Estado del Servicio:</strong>{' '}
-            <span
-              className={
-                cliente.estado === 'ACTIVO' ? 'text-success' : 'text-danger'
-              }
-            >
+            <span className={cliente.estado === 'ACTIVO' ? 'text-success' : 'text-danger'}>
               {cliente.estado === 'ACTIVO' ? 'Activo' : 'Suspendido'}
             </span>
           </p>
@@ -396,11 +376,10 @@ const Facturas = () => {
                 <td>${factura.total}</td>
                 <td>{factura.estado}</td>
                 <td>
-                  {/* BOTÓN PAYPHONE */}
                   <button
                     className="btn btn-success me-2"
                     onClick={() =>
-                      navigate('/payphone', {
+                      navigate('/clientes/payphone', {
                         state: {
                           facturaId: factura.id,
                           total: factura.total,
@@ -411,12 +390,10 @@ const Facturas = () => {
                   >
                     PAYPHONE
                   </button>
-
-                  {/* BOTÓN "DE UNA" */}
                   <button
                     className="btn btn-primary me-2"
                     onClick={() =>
-                      navigate('/pagofactura', {
+                      navigate('/clientes/pagofactura', {
                         state: {
                           amount: factura.total,
                           reference: factura.id,
@@ -428,12 +405,10 @@ const Facturas = () => {
                   >
                     DE UNA
                   </button>
-
-                  {/* BOTÓN DEPÓSITO */}
                   <button
                     className="btn btn-warning me-2"
                     onClick={() =>
-                      navigate('/pagofactura', {
+                      navigate('/clientes/pagofactura', {
                         state: {
                           amount: factura.total,
                           reference: factura.id,
@@ -445,12 +420,7 @@ const Facturas = () => {
                   >
                     DEPÓSITO
                   </button>
-
-                  {/* BOTÓN para ver sólo esta factura (detalle local) */}
-                  <button
-                    className="btn btn-info"
-                    onClick={() => handleVerFactura(factura)}
-                  >
+                  <button className="btn btn-info" onClick={() => handleVerFactura(factura)}>
                     Ver Factura
                   </button>
                 </td>
@@ -481,11 +451,7 @@ const Facturas = () => {
                 <td>${factura.total}</td>
                 <td>{factura.estado}</td>
                 <td>
-                  {/* BOTÓN para ver sólo esta factura (detalle local) */}
-                  <button
-                    className="btn btn-info"
-                    onClick={() => handleVerFactura(factura)}
-                  >
+                  <button className="btn btn-info" onClick={() => handleVerFactura(factura)}>
                     Ver Factura
                   </button>
                 </td>

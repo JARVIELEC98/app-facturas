@@ -2,6 +2,9 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 
+// Importa tu nuevo componente de inicio
+import Home from './components/Home';
+
 // Componentes de facturación
 import ConsultaCliente from './components/facturacion/ConsultaCliente';
 import Facturas from './components/facturacion/Facturas';
@@ -11,25 +14,28 @@ import PagoFactura from './components/facturacion/PagoFactura';
 
 // Componentes de administración
 import Admin from './components/admin/Admin';
-import PromesaPago from './components/admin/PromesaPago'; // <-- nuevo
+import PromesaPago from './components/admin/PromesaPago';
 
 function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* Rutas de la aplicación principal */}
-         <Route path="/" element={<ConsultaCliente />} />
-        <Route path="/facturas" element={<Facturas />} />
-        <Route path="/payphone" element={<Payphone />} />
-        <Route path="/payphoneResponce" element={<PayphoneResponce />} />
-        <Route path="/pagofactura" element={<PagoFactura />} />
-        {/* Otras rutas */}
+        {/* Página de inicio con el ícono y botones */}
+        <Route path="/" element={<Home />} />
+
+        {/* Rutas de facturación */}
+        <Route path="/clientes" element={<ConsultaCliente />} />
+        <Route path="/clientes/facturas" element={<Facturas />} />
+        <Route path="/clientes/payphone" element={<Payphone />} />
+        <Route path="/clientes/payphoneResponce" element={<PayphoneResponce />} />
+        <Route path="/clientes/pagofactura" element={<PagoFactura />} />
+
+        {/* Rutas de administración */}
         <Route path="/admin" element={<Admin />}>
-          {/* Otras rutas hijas */}
           <Route path="promesa" element={<PromesaPago />} />
         </Route>
 
-        {/* Ruta comodín */}
+        {/* Redirección comodín: cualquier otra ruta va a "/" */}
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </BrowserRouter>

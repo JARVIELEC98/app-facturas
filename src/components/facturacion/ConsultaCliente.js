@@ -1,4 +1,4 @@
-// src/components/ConsultaCliente.js
+// src/components/facturacion/ConsultaCliente.js
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 
@@ -6,32 +6,44 @@ const ConsultaCliente = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
+  // ---------------------
+  // ESTADOS PARA LA CONSULTA DEL CLIENTE
+  // ---------------------
   const [cedula, setCedula] = useState('');
   const [cliente, setCliente] = useState(null);
   const [errorCliente, setErrorCliente] = useState('');
   const [loadingCliente, setLoadingCliente] = useState(false);
 
-  // Estados para pago
+  // ---------------------
+  // ESTADOS PARA PAGO (PAYPHONE)
+  // ---------------------
   const [loadingPago, setLoadingPago] = useState(false);
   const [errorPago, setErrorPago] = useState('');
   const [confirmationData, setConfirmationData] = useState(null);
 
+  // ---------------------
+  // PARÁMETROS EN LA URL (SI REGRESAMOS DE PAYPHONE)
+  // ---------------------
+  const params = new URLSearchParams(location.search);
+  const payId = params.get('id');
+  const payTxId = params.get('clientTransactionId');
+
+  // ---------------------
+  // VARIABLES DE ENTORNO
+  // ---------------------
   const API_URL_CLIENTE = process.env.REACT_APP_API_URL_CLIENTE;
   const API_TOKEN = process.env.REACT_APP_API_TOKEN;
   const confirmApiUrl = process.env.REACT_APP_PAYPHONE_CONFIRM_API_URL;
   const payphoneToken = process.env.REACT_APP_PAYPHONE_TOKEN;
 
-  // Leer parámetros de la URL (si venimos de PayPhone)
-  const params = new URLSearchParams(location.search);
-  const payId = params.get('id');
-  const payTxId = params.get('clientTransactionId');
-
-  // A) Confirmación de Pago
+  // -------------------------------------------------------------------
+  // A) CONFIRMACIÓN DE PAGO (si venimos de PayPhone con payId y payTxId)
+  // -------------------------------------------------------------------
   useEffect(() => {
-    if (!payId) return; // No hay id => no venimos de PayPhone
+    if (!payId) return; // No hay payId => no venimos de PayPhone
 
-    if (payId === "0") {
-      // Pago no realizado
+    if (payId === '0') {
+      // Pago no realizado con éxito => se mostrará un mensaje más abajo
       return;
     }
 
@@ -52,7 +64,7 @@ const ConsultaCliente = () => {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${payphoneToken}`
+        Authorization: `Bearer ${payphoneToken}`
       },
       body: JSON.stringify(body)
     })
@@ -61,9 +73,9 @@ const ConsultaCliente = () => {
         setConfirmationData(data);
         setLoadingPago(false);
 
-        // Si la transacción está aprobada => redirigimos a /payphoneResponce con los datos
+        // Si la transacción está aprobada => redirigimos a /clientes/payphoneResponce
         if (data.transactionStatus === 'Approved') {
-          navigate('/payphoneResponce', { state: { confirmationData: data } });
+          navigate('/clientes/payphoneResponce', { state: { confirmationData: data } });
         }
       })
       .catch(err => {
@@ -72,7 +84,9 @@ const ConsultaCliente = () => {
       });
   }, [payId, payTxId, confirmApiUrl, payphoneToken, navigate]);
 
-  // B) Lógica de Consulta de Cliente
+  // -------------------------------------------------------------------
+  // B) LÓGICA DE CONSULTA DE CLIENTE
+  // -------------------------------------------------------------------
   const handleConsulta = async (e) => {
     e.preventDefault();
     setLoadingCliente(true);
@@ -80,12 +94,12 @@ const ConsultaCliente = () => {
     setCliente(null);
 
     try {
-      const body = JSON.stringify({ token: API_TOKEN, cedula: cedula });
+      const body = JSON.stringify({ token: API_TOKEN, cedula });
       const response = await fetch(API_URL_CLIENTE, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${API_TOKEN}`
+          Authorization: `Bearer ${API_TOKEN}`
         },
         body
       });
@@ -104,7 +118,8 @@ const ConsultaCliente = () => {
   };
 
   const handleVerFacturas = () => {
-    navigate('/facturas', { state: { cliente } });
+    // Navegamos a /clientes/facturas, enviando el cliente por state
+    navigate('/clientes/facturas', { state: { cliente } });
   };
 
   const handleNuevo = () => {
@@ -113,17 +128,17 @@ const ConsultaCliente = () => {
     setErrorCliente('');
   };
 
-  // ---------------------------------------------------------------------
-  // RENDER según el caso
-  // ---------------------------------------------------------------------
+  // -------------------------------------------------------------------
+  // RENDER SEGÚN EL CASO
+  // -------------------------------------------------------------------
 
   // 1) Pago fallido => payId === "0"
-  if (payId === "0") {
+  if (payId === '0') {
     return (
       <div className="container mt-5 text-center">
         <h1>Pago no realizado con éxito</h1>
         <p>Su pago no fue realizado con éxito. Por favor, intente de nuevo.</p>
-        <button className="btn btn-primary mt-3" onClick={() => navigate('/')}>
+        <button className="btn btn-primary mt-3" onClick={() => navigate('/clientes')}>
           Volver a intentar
         </button>
       </div>
@@ -132,13 +147,19 @@ const ConsultaCliente = () => {
 
   // 2) Venimos de PayPhone, pero no aprobado => mostramos datos localmente
   // (solo si ya terminamos de cargar y no se aprobó)
-  if (payId && payId !== "0" && !loadingPago && confirmationData && confirmationData.transactionStatus !== 'Approved') {
+  if (
+    payId &&
+    payId !== '0' &&
+    !loadingPago &&
+    confirmationData &&
+    confirmationData.transactionStatus !== 'Approved'
+  ) {
     return (
       <div className="container mt-5">
         <h1>Transacción no aprobada</h1>
         <p>Estado de la Transacción: {confirmationData.transactionStatus}</p>
         <p>Código de Autorización: {confirmationData.authorizationCode}</p>
-        <button className="btn btn-secondary mt-3" onClick={() => navigate('/')}>
+        <button className="btn btn-secondary mt-3" onClick={() => navigate('/clientes')}>
           Volver al inicio
         </button>
       </div>
@@ -157,13 +178,13 @@ const ConsultaCliente = () => {
     );
   }
 
-  // 4) Error de confirmación
+  // 4) Error de confirmación de pago
   if (errorPago) {
     return (
       <div className="container mt-5 text-center">
         <h1>Error al confirmar el pago</h1>
         <p>{errorPago}</p>
-        <button className="btn btn-secondary" onClick={() => navigate('/')}>
+        <button className="btn btn-secondary" onClick={() => navigate('/clientes')}>
           Volver al inicio
         </button>
       </div>
@@ -226,14 +247,19 @@ const ConsultaCliente = () => {
             {cliente.servicios && cliente.servicios.length > 0
               ? cliente.servicios.map((servicio, index) => (
                   <span key={index}>
-                    {servicio.perfil}{index < cliente.servicios.length - 1 ? ', ' : ''}
+                    {servicio.perfil}
+                    {index < cliente.servicios.length - 1 ? ', ' : ''}
                   </span>
                 ))
               : 'Sin perfiles asignados'}
           </p>
-          <p><strong>Valor Total de Facturas:</strong> {cliente.facturacion && cliente.facturacion.total_facturas}</p>
           <p>
-            <strong>Estado del Servicio:</strong> {cliente.estado === 'ACTIVO' ? 'Activo' : 'Suspendido'}
+            <strong>Valor Total de Facturas:</strong>{' '}
+            {cliente.facturacion && cliente.facturacion.total_facturas}
+          </p>
+          <p>
+            <strong>Estado del Servicio:</strong>{' '}
+            {cliente.estado === 'ACTIVO' ? 'Activo' : 'Suspendido'}
           </p>
           <div className="mt-3">
             <button onClick={handleVerFacturas} className="btn btn-info me-2">
