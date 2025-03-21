@@ -17,7 +17,8 @@ const Payphone = () => {
   const STOREID = process.env.REACT_APP_PAYPHONE_STOREID;
 
   // Ajustamos para que la respuesta regrese a /clientes
-  const RESPONSEURL = window.location.origin + '/clientes';
+  const RESPONSEURL = `${window.location.origin}/clientes`;
+
 
   useEffect(() => {
     if (!facturaId || !total) {
