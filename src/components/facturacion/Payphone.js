@@ -16,8 +16,8 @@ const Payphone = () => {
   const TOKEN = process.env.REACT_APP_PAYPHONE_TOKEN;
   const STOREID = process.env.REACT_APP_PAYPHONE_STOREID;
 
-  // Ajustamos para que la respuesta regrese a /clientes
-  const RESPONSEURL = https://app.sisnetel.com/clientes;
+  // Ajustamos para que la respuesta regrese a home
+  const RESPONSEURL = window.location.origin;
 
 
   useEffect(() => {
